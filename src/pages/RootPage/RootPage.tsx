@@ -5,7 +5,7 @@ import { usePromise } from 'any-fish';
 import { getTocItemsConfig } from '../../api';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import type { TocLinkProps, TocItemConfig } from '../../uiKit';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { FlexLayout } from './styles';
 
 const RouterLink: FC<TocLinkProps> = ({ url, ...rest }) => (
@@ -13,7 +13,8 @@ const RouterLink: FC<TocLinkProps> = ({ url, ...rest }) => (
 );
 
 export const RootPage: FC = () => {
-  const [items,, isLoading] = usePromise(getTocItemsConfig, []);
+  const [searchString, setSearchString] = useState('');
+  const [items,, isLoading] = usePromise(getTocItemsConfig, [searchString]);
   const { pathname } = useLocation();
 
   const getIsActive = useCallback((item: TocItemConfig) => item.url === pathname.substring(1), [pathname]);
@@ -26,6 +27,9 @@ export const RootPage: FC = () => {
         isLoading={isLoading}
         Link={RouterLink}
         getIsActive={getIsActive}
+        onSearch={setSearchString}
+        showSearch
+        searchValue={searchString}
       />
       <Outlet />
     </FlexLayout>

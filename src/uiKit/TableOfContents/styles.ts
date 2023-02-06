@@ -48,6 +48,10 @@ const activeItemStyles = css`
   :hover {
     background-color: ${ThemeHelpers.color('primaryActive1')};
   }
+  
+  svg path {
+    fill: ${ThemeHelpers.color('textActive1')};
+  }
 `;
 
 const inactiveItemStyles = css`
@@ -115,4 +119,10 @@ export const LoadingIndicator = styled.div`
   border-right-color: transparent;
   animation: ${rotationKeyframes} 1s infinite;
   margin: auto;
+`;
+
+export const Delimiter = styled.hr`
+  margin: ${ThemeHelpers.size(1, 0)};
+  border: none;
+  border-top: ${ThemeHelpers.border} solid;
 `;

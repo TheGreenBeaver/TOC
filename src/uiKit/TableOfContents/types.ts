@@ -36,4 +36,10 @@ export type TocProps = {
   expandedKeys?: Key[],
   onExpandedChange?: OnExpandedChange,
   isLoading?: boolean,
+  emptyText?: string,
+  showSearch?: boolean,
+  onSearch?: (searchString: string) => void,
+  searchValue?: string,
+  searchDelay?: number,
+  searchPlaceholder?: string,
 };

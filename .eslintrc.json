@@ -26,6 +26,7 @@
     "react-hooks"
   ],
   "ignorePatterns": [
+    "*.js",
     "*.cjs"
   ],
   "rules": {

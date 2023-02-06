@@ -7,10 +7,12 @@ import {
   TocItemLink,
   LoadingIndicator,
   NoItemsPlaceholder,
+  Delimiter,
 } from './styles';
 import type { GetIsActive, TocItemConfig, TocLinkComponent, OnExpandedChange, TocProps } from './types';
 import { getItemsToExpand, getItemsToCollapse } from './helpers';
 import map from 'lodash/map';
+import { StatefulInput } from '../StatefulInput';
 
 const defaultGetIsActive: GetIsActive = item => window.location.pathname.substring(1) === item.url;
 
@@ -98,6 +100,12 @@ export const TableOfContents = forwardRef<HTMLUListElement, TocProps>(({
   expandedKeys: providedExpandedKeys,
   onExpandedChange: providedOnExpandedChange,
   isLoading,
+  emptyText,
+  showSearch,
+  onSearch,
+  searchValue,
+  searchDelay,
+  searchPlaceholder = 'Filter items',
 }, ref) => {
   const [innerExpandedKeys, setInnerExpandedKeys] = useState<Key[]>(
     () => providedExpandedKeys || (items ? map(getItemsToExpand(items, getIsActive), 'key') : []),
@@ -129,10 +137,10 @@ export const TableOfContents = forwardRef<HTMLUListElement, TocProps>(({
       return <LoadingIndicator />;
     }
 
-    if (!items) {
+    if (!items?.length) {
       return (
         <NoItemsPlaceholder>
-          No information found
+          {emptyText ?? (searchValue ? `No items matching "${searchValue}" found` : 'No information found')}
         </NoItemsPlaceholder>
       );
     }
@@ -142,6 +150,17 @@ export const TableOfContents = forwardRef<HTMLUListElement, TocProps>(({
 
   return (
     <TocList className={className} ref={ref}>
+      {showSearch && (
+        <>
+          <StatefulInput
+            onChange={onSearch}
+            value={searchValue}
+            delay={searchDelay}
+            placeholder={searchPlaceholder}
+          />
+          <Delimiter />
+        </>
+      )}
       {getContent()}
     </TocList>
   );

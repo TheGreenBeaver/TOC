@@ -25,8 +25,8 @@ const getTocItemConfigFromPage = (page: Page, pagesData: PagesData): TocItemConf
   return item;
 };
 
-export const getTocItemsConfig = async (): Promise<TocItemConfig[]> => {
-  const response = await fetch('http://localhost:5000/db');
+export const getTocItemsConfig = async (q: string): Promise<TocItemConfig[]> => {
+  const response = await fetch(`http://localhost:5000/pagesData?q=${q}`);
   const pagesData: PagesData = await response.json();
 
   const tocItems: TocItemConfig[] = [];

@@ -2,7 +2,7 @@ import { createGlobalStyle } from 'styled-components';
 import { ThemeHelpers } from './helpers';
 
 export const RootStyles = createGlobalStyle`
-  *, *:before, *:after {
+  *, *:before, *:after, *::placeholder {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
