@@ -3,30 +3,30 @@ import type { ColorMode, Palette } from './types';
 
 const lightPalette: Palette = {
   primaryMain: '#307fff',
-  primaryActive1: '#3784ff',
+  primaryActive1: '#2f7af3',
 
-  textMain: '#191919',
+  textMain: 'rgb(25, 25, 28)',
   textActive1: '#ffffff',
 
   bgMain: '#ffffff',
   bgActive1: '#f9f9f9',
   bgActive2: '#f4f4f4',
-  bgActive3: '#ececec',
+  bgActive3: '#e8e8e8',
 
-  border: '#D1D1D2',
+  border: '#d1d1d2',
 };
 
 const darkPalette: Palette = {
   primaryMain: '#307fff',
-  primaryActive1: '#3784ff',
+  primaryActive1: '#3b86ff',
 
-  textMain: '#ffffff',
+  textMain: 'rgba(255, 255, 255, 0.8)',
   textActive1: '#ffffff',
 
-  bgMain: '#000000',
-  bgActive1: '#1e1e1e',
-  bgActive2: '#2d2d2d',
-  bgActive3: '#383838',
+  bgMain: '#19191c',
+  bgActive1: '#1f1f21',
+  bgActive2: '#252528',
+  bgActive3: '#303033',
 
   border: '#474749',
 };

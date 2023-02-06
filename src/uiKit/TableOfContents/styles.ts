@@ -76,7 +76,6 @@ export const TocItem = styled.li<TocItemProps>`
   align-items: center;
   column-gap: ${ThemeHelpers.size()};
   background-color: ${props => ThemeHelpers.color(getBgColor(props))};
-  ${ThemeHelpers.transition('background-color', 'color')}
   
   :focus-${props => props.isLink ? 'within' : 'visible'} {
     outline: ${({ theme }) => theme.border.width}px solid ${ThemeHelpers.color('primaryMain')};

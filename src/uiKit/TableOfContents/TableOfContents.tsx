@@ -1,5 +1,5 @@
 import type { Key, ReactNode } from 'react';
-import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   TocItem,
   TocList,
@@ -10,7 +10,7 @@ import {
   Delimiter,
 } from './styles';
 import type { GetIsActive, TocItemConfig, TocLinkComponent, OnExpandedChange, TocProps } from './types';
-import { getItemsToExpand, getItemsToCollapse } from './helpers';
+import { getItemsToExpand, getItemsToCollapse, getFilteredItems } from './helpers';
 import map from 'lodash/map';
 import { StatefulInput } from '../StatefulInput';
 
@@ -92,7 +92,7 @@ const renderItem = (
 const DefaultLink: TocLinkComponent = ({ url, ...rest }) => <a href={url} rel='noopener noreferrer' {...rest} />;
 
 export const TableOfContents = forwardRef<HTMLUListElement, TocProps>(({
-  items,
+  items: providedItems,
   className,
   Link = DefaultLink,
   maxIndent,
@@ -102,17 +102,27 @@ export const TableOfContents = forwardRef<HTMLUListElement, TocProps>(({
   isLoading,
   emptyText,
   showSearch,
-  onSearch,
-  searchValue,
+  onSearch: providedOnSearch,
+  searchValue: providedSearchValue,
   searchDelay,
   searchPlaceholder = 'Filter items',
 }, ref) => {
+  const [innerSearchValue, setInnerSearchValue] = useState(() => providedSearchValue ?? '');
+  const searchValue = providedSearchValue ?? innerSearchValue;
+
+  const items = useMemo(
+    () => providedOnSearch
+      ? providedItems
+      : getFilteredItems(providedItems ?? [], searchValue),
+    [providedItems, providedOnSearch, searchValue],
+  );
+
   const [innerExpandedKeys, setInnerExpandedKeys] = useState<Key[]>(
     () => providedExpandedKeys || (items ? map(getItemsToExpand(items, getIsActive), 'key') : []),
   );
-  const prevItems = useRef(items);
 
-  const expandedKeys = providedExpandedKeys || innerExpandedKeys;
+  const expandedKeys = providedExpandedKeys ?? innerExpandedKeys;
+  const onSearch = providedOnSearch ?? setInnerSearchValue;
 
   const onExpandedChange = useCallback<OnExpandedChange>((changedItems, isExpanded) => providedOnExpandedChange
     ? providedOnExpandedChange(changedItems, isExpanded)
@@ -125,11 +135,9 @@ export const TableOfContents = forwardRef<HTMLUListElement, TocProps>(({
   );
 
   useEffect(() => {
-    if (items && items !== prevItems.current) {
+    if (items) {
       onExpandedChange(getItemsToExpand(items, getIsActive), true);
     }
-
-    prevItems.current = items;
   }, [items, getIsActive, onExpandedChange]);
 
   const getContent = () => {

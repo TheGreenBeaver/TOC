@@ -31,3 +31,26 @@ export const getItemsToExpand = (items: TocItemConfig[], getIsActive: GetIsActiv
 
   return expandedKeys;
 };
+
+const digForMatchingChildren = (item: TocItemConfig, q: string, matchingItems: TocItemConfig[]): boolean => {
+  const matchesQ = String(item.label).toLowerCase().includes(q.toLowerCase().trim());
+  const filteredItem = { ...item, children: [] };
+
+  if (
+    item.children?.some(childItem => digForMatchingChildren(childItem, q, filteredItem.children)) ||
+    matchesQ
+  ) {
+    matchingItems.push(filteredItem);
+
+    return true;
+  }
+
+  return false;
+};
+
+export const getFilteredItems = (items: TocItemConfig[], q: string): TocItemConfig[] => {
+  const matchingItems: TocItemConfig[] = [];
+  items.forEach(item => digForMatchingChildren(item, q, matchingItems));
+
+  return matchingItems;
+};

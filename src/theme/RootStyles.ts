@@ -8,6 +8,7 @@ export const RootStyles = createGlobalStyle`
     box-sizing: border-box;
     font-family: Roboto, sans-serif;
     color: ${ThemeHelpers.color('textMain')};
+    ${ThemeHelpers.transition('background-color', 'color')}
   }
   
   #root {
