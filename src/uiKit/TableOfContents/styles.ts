@@ -3,6 +3,7 @@ import type { Color} from '../../theme';
 import { ThemeHelpers } from '../../theme';
 import { ReactComponent as ExpandIcon } from './expandIcon.svg';
 import type { StyledExpandIconProps, TocItemProps } from './types';
+import { animated } from '@react-spring/web';
 
 export const TocList = styled.ul`
   list-style: none;
@@ -124,4 +125,9 @@ export const Delimiter = styled.hr`
   margin: ${ThemeHelpers.size(1, 0)};
   border: none;
   border-top: ${ThemeHelpers.border} solid;
+`;
+
+export const ChildrenWrapper = styled(animated.div)`
+  will-change: transform, opacity, height;
+  overflow: hidden;
 `;

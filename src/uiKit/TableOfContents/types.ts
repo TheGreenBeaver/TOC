@@ -48,3 +48,7 @@ export type TocProps = {
 export type TocInnerProps = {
   items: TocItemConfig[],
 } & Pick<TocProps, 'expandedKeys' | 'Link' | 'getIsActive' | 'onExpandedChange' | 'maxIndent' | 'defaultExpanded'>;
+
+export type ChildrenContainerProps = PropsWithChildren<{
+  isOpen: boolean,
+}>;

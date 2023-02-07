@@ -1,5 +1,5 @@
 import type { FC, Key, ReactNode } from 'react';
-import { forwardRef, useCallback, useMemo, useState } from 'react';
+import { forwardRef, useCallback, useMemo, useState, Fragment } from 'react';
 import {
   TocItem,
   TocList,
@@ -8,13 +8,54 @@ import {
   LoadingIndicator,
   NoItemsPlaceholder,
   Delimiter,
+  ChildrenWrapper,
 } from './styles';
-import type { GetIsActive, TocItemConfig, TocLinkComponent, OnExpandedChange, TocProps, TocInnerProps } from './types';
+import type {
+  GetIsActive,
+  TocItemConfig,
+  TocLinkComponent,
+  OnExpandedChange,
+  TocProps,
+  TocInnerProps,
+  ChildrenContainerProps,
+} from './types';
 import { getItemsToExpand, getItemsToCollapse, getFilteredItems } from './helpers';
 import map from 'lodash/map';
 import { StatefulInput } from '../StatefulInput';
+import { useDimensions } from 'any-fish';
+import { usePrevious } from '../../hooks';
+import { useSpring, a } from '@react-spring/web';
 
 const defaultGetIsActive: GetIsActive = item => window.location.pathname.substring(1) === item.url;
+
+const ChildrenContainer: FC<ChildrenContainerProps> = ({
+  isOpen,
+  children,
+}) => {
+  const [dimensions, ref] = useDimensions({ throttle: 300 });
+  const getPrevious = usePrevious(isOpen);
+  const { height, y, opacity } = useSpring({
+    from: { height: 0, opacity: 0, y: 0 },
+    to: {
+      height: isOpen && dimensions ? dimensions.height : 0,
+      opacity: isOpen ? 1 : 0,
+      y: isOpen ? 0 : 20,
+    },
+  });
+
+  return (
+    <ChildrenWrapper
+      style={{
+        opacity,
+        height: isOpen && getPrevious() === isOpen ? 'auto' : height,
+      }}
+    >
+      <a.div ref={ref} style={{ y }}>
+        {children}
+      </a.div>
+    </ChildrenWrapper>
+  );
+};
 
 const renderItem = (
   item: TocItemConfig,
@@ -50,43 +91,43 @@ const renderItem = (
     }
   };
 
-  const result: ReactNode[] = [
-    <TocItem
-      key={key}
-      indent={maxIndent == null ? level : Math.min(maxIndent, level)}
-      onClick={handleInteraction}
-      onKeyUp={e => {
-        if (e.key === 'Enter') {
-          handleInteraction();
-        }
-      }}
-      tabIndex={url ? undefined : 0}
-      isExpanded={isExpanded}
-      isActive={getIsActive(item)}
-      isLink={!!url}
-      level={level}
-      hasActiveChildren={hasActiveChildren}
-      activeSiblingLevel={activeSiblingLevel}
-    >
-      <StyledExpandIcon asPlaceholder={!hasChildren} />
-      {url ? <TocItemLink as={Link} url={url}>{label}</TocItemLink> : label}
-    </TocItem>,
-  ];
-
-  if (hasChildren && isExpanded) {
-    result.push(...children.map(childItem => renderItem(
-      childItem,
-      expandedKeys,
-      onExpandedChange,
-      Link,
-      getIsActive,
-      maxIndent,
-      level + 1,
-      hasActiveChildren || getIsActive(item) ? level : activeSiblingLevel,
-    )));
-  }
-
-  return result;
+  return (
+    <Fragment key={key}>
+      <TocItem
+        indent={maxIndent == null ? level : Math.min(maxIndent, level)}
+        onClick={handleInteraction}
+        onKeyUp={e => {
+          if (e.key === 'Enter') {
+            handleInteraction();
+          }
+        }}
+        tabIndex={url ? undefined : 0}
+        isExpanded={isExpanded}
+        isActive={getIsActive(item)}
+        isLink={!!url}
+        level={level}
+        hasActiveChildren={hasActiveChildren}
+        activeSiblingLevel={activeSiblingLevel}
+      >
+        <StyledExpandIcon asPlaceholder={!hasChildren} />
+        {url ? <TocItemLink as={Link} url={url}>{label}</TocItemLink> : label}
+      </TocItem>
+      {hasChildren && (
+        <ChildrenContainer isOpen={isExpanded}>
+          {children.map(childItem => renderItem(
+            childItem,
+            expandedKeys,
+            onExpandedChange,
+            Link,
+            getIsActive,
+            maxIndent,
+            level + 1,
+            hasActiveChildren || getIsActive(item) ? level : activeSiblingLevel,
+          ))}
+        </ChildrenContainer>
+      )}
+    </Fragment>
+  );
 };
 
 const DefaultLink: TocLinkComponent = ({ url, ...rest }) => <a href={url} rel='noopener noreferrer' {...rest} />;
