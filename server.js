@@ -2,28 +2,9 @@ const app = require('express')();
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
-const cloneDeep = require('lodash/cloneDeep');
+const pick = require('lodash/pick');
 
 app.use(cors({ origin: ['http://localhost:3000', 'http://127.0.0.1:3000'] }));
-
-const digForMatchingPages = (page, q, getPageById, onPageMatches) => {
-  if (!page) {
-    return false;
-  }
-
-  const matchesQ = page.title.toLowerCase().includes(q.toLowerCase().trim());
-
-  if (
-    page.pages?.some(childPageId => digForMatchingPages(getPageById(childPageId), q, getPageById, onPageMatches)) ||
-    matchesQ
-  ) {
-    onPageMatches(page);
-
-    return true;
-  }
-
-  return false;
-};
 
 app.get('/pagesData', async (req, res) => {
   // delay
@@ -32,19 +13,30 @@ app.get('/pagesData', async (req, res) => {
   const { q } = req.query;
   const stringData = await fs.promises.readFile(path.join(__dirname, 'db.json'), 'utf-8');
   const jsonData = JSON.parse(stringData);
-  const result = cloneDeep(jsonData);
-  result.entities.pages = {};
 
-  jsonData.topLevelIds.forEach(topLevelId => digForMatchingPages(
-    jsonData.entities.pages[topLevelId],
-    q,
-    id => jsonData.entities.pages[id],
-    page => {
-      result.entities.pages[page.id] = page;
-    },
-  ));
+  if (!q) {
+    return res.json(jsonData);
+  }
 
-  return res.json(result);
+  const cleanQ = q.toLowerCase().trim();
+  const pageIdsToPick = [];
+
+  const updateIdsToPick = page => {
+    pageIdsToPick.push(page.id);
+    const parentPage = jsonData.entities.pages[page.parentId];
+
+    if (parentPage) {
+      updateIdsToPick(parentPage);
+    }
+  };
+
+  Object.values(jsonData.entities.pages).forEach(page => {
+    if (page.title.toLowerCase().includes(cleanQ)) {
+      updateIdsToPick(page)
+    }
+  });
+
+  return res.json({ ...jsonData, entities: { pages: pick(jsonData.entities.pages, pageIdsToPick) } });
 });
 
 app.listen(5000, () => console.log('Server is running'));

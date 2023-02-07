@@ -1,3 +1,3 @@
 import type { FC, PropsWithChildren } from 'react';
 
-export type ChildrenWrapper = FC<PropsWithChildren>
+export type ChildrenWrapper = FC<PropsWithChildren>;

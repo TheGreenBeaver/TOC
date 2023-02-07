@@ -1,5 +1,5 @@
-import type { Key, ReactNode } from 'react';
-import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
+import type { FC, Key, ReactNode } from 'react';
+import { forwardRef, useCallback, useMemo, useState } from 'react';
 import {
   TocItem,
   TocList,
@@ -9,7 +9,7 @@ import {
   NoItemsPlaceholder,
   Delimiter,
 } from './styles';
-import type { GetIsActive, TocItemConfig, TocLinkComponent, OnExpandedChange, TocProps } from './types';
+import type { GetIsActive, TocItemConfig, TocLinkComponent, OnExpandedChange, TocProps, TocInnerProps } from './types';
 import { getItemsToExpand, getItemsToCollapse, getFilteredItems } from './helpers';
 import map from 'lodash/map';
 import { StatefulInput } from '../StatefulInput';
@@ -91,14 +91,43 @@ const renderItem = (
 
 const DefaultLink: TocLinkComponent = ({ url, ...rest }) => <a href={url} rel='noopener noreferrer' {...rest} />;
 
+const TableOfContentsInner: FC<TocInnerProps> = ({
+  items,
+  expandedKeys: providedExpandedKeys,
+  Link = DefaultLink,
+  getIsActive = defaultGetIsActive,
+  onExpandedChange: providedOnExpandedChange,
+  maxIndent,
+  defaultExpanded,
+}) => {
+  const [innerExpandedKeys, setInnerExpandedKeys] = useState<Key[]>(
+    () => defaultExpanded ?? providedExpandedKeys ?? map(getItemsToExpand(items, getIsActive), 'key'),
+  );
+  const expandedKeys = providedExpandedKeys ?? innerExpandedKeys;
+
+  const onExpandedChange = useCallback<OnExpandedChange>((
+    changedItems,
+    isExpanded,
+  ) => providedOnExpandedChange
+    ? providedOnExpandedChange(changedItems, isExpanded)
+    : setInnerExpandedKeys(curr => {
+      const changedKeys = map(changedItems, 'key');
+
+      return isExpanded ? [...curr, ...changedKeys] : curr.filter(key => !changedKeys.includes(key));
+    }), [
+    providedOnExpandedChange,
+  ]);
+
+  return (
+    <>
+      {items.map(item => renderItem(item, expandedKeys, onExpandedChange, Link, getIsActive, maxIndent))}
+    </>
+  );
+};
+
 export const TableOfContents = forwardRef<HTMLUListElement, TocProps>(({
   items: providedItems,
   className,
-  Link = DefaultLink,
-  maxIndent,
-  getIsActive = defaultGetIsActive,
-  expandedKeys: providedExpandedKeys,
-  onExpandedChange: providedOnExpandedChange,
   isLoading,
   emptyText,
   showSearch,
@@ -106,39 +135,17 @@ export const TableOfContents = forwardRef<HTMLUListElement, TocProps>(({
   searchValue: providedSearchValue,
   searchDelay,
   searchPlaceholder = 'Filter items',
+  ...rest
 }, ref) => {
   const [innerSearchValue, setInnerSearchValue] = useState(() => providedSearchValue ?? '');
   const searchValue = providedSearchValue ?? innerSearchValue;
 
   const items = useMemo(
-    () => providedOnSearch
-      ? providedItems
-      : getFilteredItems(providedItems ?? [], searchValue),
+    () => providedOnSearch ? providedItems : getFilteredItems(providedItems ?? [], searchValue),
     [providedItems, providedOnSearch, searchValue],
   );
 
-  const [innerExpandedKeys, setInnerExpandedKeys] = useState<Key[]>(
-    () => providedExpandedKeys || (items ? map(getItemsToExpand(items, getIsActive), 'key') : []),
-  );
-
-  const expandedKeys = providedExpandedKeys ?? innerExpandedKeys;
   const onSearch = providedOnSearch ?? setInnerSearchValue;
-
-  const onExpandedChange = useCallback<OnExpandedChange>((changedItems, isExpanded) => providedOnExpandedChange
-    ? providedOnExpandedChange(changedItems, isExpanded)
-    : setInnerExpandedKeys(curr => {
-      const changedKeys = map(changedItems, 'key');
-
-      return isExpanded ? [...curr, ...changedKeys] : curr.filter(key => !changedKeys.includes(key));
-    }),
-  [providedOnExpandedChange, setInnerExpandedKeys],
-  );
-
-  useEffect(() => {
-    if (items) {
-      onExpandedChange(getItemsToExpand(items, getIsActive), true);
-    }
-  }, [items, getIsActive, onExpandedChange]);
 
   const getContent = () => {
     if (isLoading) {
@@ -153,7 +160,7 @@ export const TableOfContents = forwardRef<HTMLUListElement, TocProps>(({
       );
     }
 
-    return items.map(item => renderItem(item, expandedKeys, onExpandedChange, Link, getIsActive, maxIndent));
+    return <TableOfContentsInner {...rest} items={items} />;
   };
 
   return (

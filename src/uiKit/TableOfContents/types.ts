@@ -34,6 +34,7 @@ export type TocProps = {
   Link?: TocLinkComponent,
   getIsActive?: GetIsActive,
   expandedKeys?: Key[],
+  defaultExpanded?: Key[],
   onExpandedChange?: OnExpandedChange,
   isLoading?: boolean,
   emptyText?: string,
@@ -43,3 +44,7 @@ export type TocProps = {
   searchDelay?: number,
   searchPlaceholder?: string,
 };
+
+export type TocInnerProps = {
+  items: TocItemConfig[],
+} & Pick<TocProps, 'expandedKeys' | 'Link' | 'getIsActive' | 'onExpandedChange' | 'maxIndent' | 'defaultExpanded'>;
