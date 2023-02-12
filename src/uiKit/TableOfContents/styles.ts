@@ -1,5 +1,5 @@
 import styled, { css, keyframes } from 'styled-components';
-import type { Color} from '../../theme';
+import type { Color } from '../../theme';
 import { ThemeHelpers } from '../../theme';
 import { ReactComponent as ExpandIcon } from './expandIcon.svg';
 import type { StyledExpandIconProps, TocItemProps } from './types';
@@ -16,31 +16,25 @@ export const TocList = styled.ul`
 `;
 
 export const StyledExpandIcon = styled(ExpandIcon).withConfig<StyledExpandIconProps>({
-  shouldForwardProp: prop => prop !== 'asPlaceholder',
+  shouldForwardProp: prop => !['asPlaceholder', 'isExpanded'].includes(prop),
 })`
   ${ThemeHelpers.transition('transform')}
-  transform: rotate(-90deg);
+  transform: rotate(${props => props.isExpanded ? 0 : -90}deg);
   ${props => props.asPlaceholder && 'visibility: hidden;'}
 `;
 
 const bgColorByLevel = ['bgMain', 'bgActive1', 'bgActive2'] as const;
-const getBgColor = ({ level, hasActiveChildren, activeSiblingLevel }: TocItemProps): Color => {
+const getBgColor = ({ level, hasActiveChildren, activeNeighbourLevel }: TocItemProps): Color => {
   if (hasActiveChildren) {
     return bgColorByLevel[level + 1] || 'bgActive2';
   }
 
-  if (activeSiblingLevel != null) {
-    return bgColorByLevel[activeSiblingLevel + 1] || 'bgActive2';
+  if (activeNeighbourLevel != null) {
+    return bgColorByLevel[activeNeighbourLevel + 1] || 'bgActive2';
   }
 
   return 'bgMain';
 };
-
-const expandedItemStyles = css`
-  ${StyledExpandIcon} {
-    transform: rotate(0);
-  }
-`;
 
 const activeItemStyles = css`
   background-color: ${ThemeHelpers.color('primaryMain')};
@@ -83,7 +77,6 @@ export const TocItem = styled.li<TocItemProps>`
     outline-offset: -${({ theme }) => theme.border.width}px;
   }
 
-  ${props => props.isExpanded && expandedItemStyles}
   ${props => props.isActive ? activeItemStyles : inactiveItemStyles}
 `;
 

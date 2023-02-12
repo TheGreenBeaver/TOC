@@ -5,7 +5,6 @@ const getTocItemConfigFromPage = (page: Page, pagesData: PagesData): TocItemConf
   const item: TocItemConfig = {
     label: page.title,
     url: page.url,
-    key: page.id,
   };
 
   if (page.pages) {

@@ -1,20 +1,21 @@
-import type { ComponentType, Key, PropsWithChildren, ReactNode } from 'react';
+import type { ComponentType, PropsWithChildren, ReactNode } from 'react';
 
-export type StyledExpandIconProps = { asPlaceholder?: boolean };
+export type StyledExpandIconProps = Partial<{
+  asPlaceholder: boolean,
+  isExpanded: boolean,
+}>;
 
 export type TocItemProps = {
   indent?: number,
   isActive?: boolean,
-  isExpanded?: boolean,
   isLink?: boolean,
   level: number,
   hasActiveChildren?: boolean,
-  activeSiblingLevel?: number,
+  activeNeighbourLevel?: number,
 };
 
 export type TocItemConfig = {
   label: ReactNode,
-  key: Key,
   children?: TocItemConfig[],
   url?: string,
 };
@@ -25,17 +26,12 @@ export type TocLinkComponent = ComponentType<TocLinkProps>;
 
 export type GetIsActive = (item: TocItemConfig) => boolean;
 
-export type OnExpandedChange = (changedItems: TocItemConfig[], isExpanded: boolean) => void;
-
 export type TocProps = {
   items?: TocItemConfig[],
   className?: string,
   maxIndent?: number,
   Link?: TocLinkComponent,
   getIsActive?: GetIsActive,
-  expandedKeys?: Key[],
-  defaultExpanded?: Key[],
-  onExpandedChange?: OnExpandedChange,
   isLoading?: boolean,
   emptyText?: string,
   showSearch?: boolean,
@@ -45,10 +41,17 @@ export type TocProps = {
   searchPlaceholder?: string,
 };
 
-export type TocInnerProps = {
-  items: TocItemConfig[],
-} & Pick<TocProps, 'expandedKeys' | 'Link' | 'getIsActive' | 'onExpandedChange' | 'maxIndent' | 'defaultExpanded'>;
-
 export type ChildrenContainerProps = PropsWithChildren<{
   isOpen: boolean,
 }>;
+
+export type TreeItemProps = {
+  item: TocItemConfig,
+  Link: TocLinkComponent,
+  isActive?: boolean,
+  activeChildPath?: string,
+  maxIndent?: number,
+  level?: number,
+  activeNeighbourLevel?: number,
+  onActiveChange?: (item: TocItemConfig, isActive: boolean) => void,
+};

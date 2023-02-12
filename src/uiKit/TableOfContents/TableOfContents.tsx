@@ -1,5 +1,4 @@
-import type { FC, Key, ReactNode } from 'react';
-import { forwardRef, useCallback, useMemo, useState, Fragment } from 'react';
+import { forwardRef, useMemo, useState, memo, useEffect, useCallback } from 'react';
 import {
   TocItem,
   TocList,
@@ -11,28 +10,23 @@ import {
   ChildrenWrapper,
 } from './styles';
 import type {
-  GetIsActive,
-  TocItemConfig,
-  TocLinkComponent,
-  OnExpandedChange,
   TocProps,
-  TocInnerProps,
   ChildrenContainerProps,
+  TreeItemProps,
+  TocItemConfig,
 } from './types';
-import { getItemsToExpand, getItemsToCollapse, getFilteredItems } from './helpers';
-import map from 'lodash/map';
+import { getActivePaths, getFilteredItems } from './helpers';
 import { StatefulInput } from '../StatefulInput';
 import { useDimensions } from 'any-fish';
 import { usePrevious } from '../../hooks';
 import { useSpring, a } from '@react-spring/web';
+import { defaultGetIsActive, DefaultLink } from './defaultValues';
 
-const defaultGetIsActive: GetIsActive = item => window.location.pathname.substring(1) === item.url;
-
-const ChildrenContainer: FC<ChildrenContainerProps> = ({
+const ChildrenContainer = memo<ChildrenContainerProps>(({
   isOpen,
   children,
 }) => {
-  const [dimensions, ref] = useDimensions({ throttle: 300 });
+  const [dimensions, ref] = useDimensions();
   const getPrevious = usePrevious(isOpen);
   const { height, y, opacity } = useSpring({
     from: { height: 0, opacity: 0, y: 0 },
@@ -55,44 +49,46 @@ const ChildrenContainer: FC<ChildrenContainerProps> = ({
       </a.div>
     </ChildrenWrapper>
   );
-};
+});
 
-const renderItem = (
-  item: TocItemConfig,
-  expandedKeys: Key[],
-  onExpandedChange: OnExpandedChange,
-  Link: TocLinkComponent,
-  getIsActive: GetIsActive,
-  maxIndent?: number,
-  level: number = 0,
-  activeSiblingLevel?: number,
-): ReactNode => {
-  const { children, label, key, url } = item;
+const TreeItem = memo<TreeItemProps>(({
+  item,
+  Link,
+  isActive,
+  activeChildPath,
+  maxIndent,
+  level = 0,
+  activeNeighbourLevel,
+  onActiveChange,
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [activeChildren, setActiveChildren] = useState<TocItemConfig[]>([]);
+  const { children, label, url } = item;
   const hasChildren = !!children?.length;
-  const isExpanded = expandedKeys.includes(key);
-  const itemsToExpand = getItemsToExpand([item], getIsActive);
-  const hasActiveChildren = !!itemsToExpand.length || children?.some(getIsActive);
+
+  useEffect(() => {
+    onActiveChange?.(item, !!isActive);
+  }, [item, isActive, onActiveChange]);
 
   const handleInteraction = () => {
     if (hasChildren) {
-      const changedItems: TocItemConfig[] = [];
-
-      if (isExpanded) {
-        changedItems.push(...getItemsToCollapse(item));
-      } else {
-        changedItems.push(...itemsToExpand);
-
-        if (!changedItems.length) {
-          changedItems.push(item);
-        }
-      }
-
-      onExpandedChange(changedItems, !isExpanded);
+      setIsExpanded(curr => !curr);
     }
   };
 
+  const onChildActiveChange = useCallback((childItem: TocItemConfig, isChildActive: boolean) => {
+    onActiveChange?.(childItem, isChildActive);
+    setIsExpanded(curr => curr || isChildActive);
+    setActiveChildren(curr => isChildActive
+      ? [...curr, childItem]
+      : curr.filter(someItem => someItem !== childItem),
+    );
+  }, [onActiveChange]);
+
+  const splitPath = activeChildPath?.split('.');
+
   return (
-    <Fragment key={key}>
+    <>
       <TocItem
         indent={maxIndent == null ? level : Math.min(maxIndent, level)}
         onClick={handleInteraction}
@@ -102,69 +98,35 @@ const renderItem = (
           }
         }}
         tabIndex={url ? undefined : 0}
-        isExpanded={isExpanded}
-        isActive={getIsActive(item)}
+        isActive={isActive}
         isLink={!!url}
         level={level}
-        hasActiveChildren={hasActiveChildren}
-        activeSiblingLevel={activeSiblingLevel}
+        hasActiveChildren={!!activeChildren.length}
+        activeNeighbourLevel={activeNeighbourLevel}
       >
-        <StyledExpandIcon asPlaceholder={!hasChildren} />
+        <StyledExpandIcon asPlaceholder={!hasChildren} isExpanded={isExpanded} />
         {url ? <TocItemLink as={Link} url={url}>{label}</TocItemLink> : label}
       </TocItem>
       {hasChildren && (
         <ChildrenContainer isOpen={isExpanded}>
-          {children.map(childItem => renderItem(
-            childItem,
-            expandedKeys,
-            onExpandedChange,
-            Link,
-            getIsActive,
-            maxIndent,
-            level + 1,
-            hasActiveChildren || getIsActive(item) ? level : activeSiblingLevel,
+          {children.map((childItem, index) => (
+            <TreeItem
+              key={index}
+              item={childItem}
+              Link={Link}
+              isActive={activeChildPath === String(index)}
+              activeChildPath={splitPath?.[0] === String(index) ? splitPath?.slice(1).join('.') : undefined}
+              maxIndent={maxIndent}
+              level={level + 1}
+              activeNeighbourLevel={activeChildren.length || isActive ? level : activeNeighbourLevel}
+              onActiveChange={onChildActiveChange}
+            />
           ))}
         </ChildrenContainer>
       )}
-    </Fragment>
-  );
-};
-
-const DefaultLink: TocLinkComponent = ({ url, ...rest }) => <a href={url} rel='noopener noreferrer' {...rest} />;
-
-const TableOfContentsInner: FC<TocInnerProps> = ({
-  items,
-  expandedKeys: providedExpandedKeys,
-  Link = DefaultLink,
-  getIsActive = defaultGetIsActive,
-  onExpandedChange: providedOnExpandedChange,
-  maxIndent,
-  defaultExpanded,
-}) => {
-  const [innerExpandedKeys, setInnerExpandedKeys] = useState<Key[]>(
-    () => defaultExpanded ?? providedExpandedKeys ?? map(getItemsToExpand(items, getIsActive), 'key'),
-  );
-  const expandedKeys = providedExpandedKeys ?? innerExpandedKeys;
-
-  const onExpandedChange = useCallback<OnExpandedChange>((
-    changedItems,
-    isExpanded,
-  ) => providedOnExpandedChange
-    ? providedOnExpandedChange(changedItems, isExpanded)
-    : setInnerExpandedKeys(curr => {
-      const changedKeys = map(changedItems, 'key');
-
-      return isExpanded ? [...curr, ...changedKeys] : curr.filter(key => !changedKeys.includes(key));
-    }), [
-    providedOnExpandedChange,
-  ]);
-
-  return (
-    <>
-      {items.map(item => renderItem(item, expandedKeys, onExpandedChange, Link, getIsActive, maxIndent))}
     </>
   );
-};
+});
 
 export const TableOfContents = forwardRef<HTMLUListElement, TocProps>(({
   items: providedItems,
@@ -176,17 +138,20 @@ export const TableOfContents = forwardRef<HTMLUListElement, TocProps>(({
   searchValue: providedSearchValue,
   searchDelay,
   searchPlaceholder = 'Filter items',
-  ...rest
+  Link = DefaultLink,
+  getIsActive = defaultGetIsActive,
+  maxIndent,
 }, ref) => {
-  const [innerSearchValue, setInnerSearchValue] = useState(() => providedSearchValue ?? '');
-  const searchValue = providedSearchValue ?? innerSearchValue;
+  const [internalSearchValue, setInternalSearchValue] = useState(providedSearchValue ?? '');
+  const searchValue = providedSearchValue ?? internalSearchValue;
 
   const items = useMemo(
     () => providedOnSearch ? providedItems : getFilteredItems(providedItems ?? [], searchValue),
     [providedItems, providedOnSearch, searchValue],
   );
+  const activePaths = useMemo(() => getActivePaths(items || [], getIsActive), [getIsActive, items]);
 
-  const onSearch = providedOnSearch ?? setInnerSearchValue;
+  const onSearch = providedOnSearch ?? setInternalSearchValue;
 
   const getContent = () => {
     if (isLoading) {
@@ -201,7 +166,20 @@ export const TableOfContents = forwardRef<HTMLUListElement, TocProps>(({
       );
     }
 
-    return <TableOfContentsInner {...rest} items={items} />;
+    return items.map((item, index) => {
+      const activePath = activePaths[index];
+
+      return (
+        <TreeItem
+          key={index}
+          item={item}
+          Link={Link}
+          isActive={activePath === String(index)}
+          activeChildPath={activePath?.split('.').slice(1).join('.')}
+          maxIndent={maxIndent}
+        />
+      );
+    });
   };
 
   return (

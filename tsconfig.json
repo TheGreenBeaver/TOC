@@ -6,7 +6,6 @@
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noUncheckedIndexedAccess": true,
-    "noUnusedLocals": true,
     "noUnusedParameters": true,
     "strictBindCallApply": true,
     "strictNullChecks": true,
