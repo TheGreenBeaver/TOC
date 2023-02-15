@@ -1,5 +1,5 @@
 import type { KeyboardEventHandler } from 'react';
-import { forwardRef, useMemo, useState, memo, useCallback } from 'react';
+import { forwardRef, useMemo, useState, memo, useCallback, useEffect } from 'react';
 import {
   TocItem,
   TocList,
@@ -59,11 +59,18 @@ const TreeItem = memo<TreeItemProps>(({
   maxIndent,
   level = 0,
   activeNeighbourLevel,
+  parentIsExpanded,
 }) => {
   const hasActiveChildren = !!activeChildPath;
   const [isExpanded, setIsExpanded] = useState(hasActiveChildren);
   const { children, label, url } = item;
   const hasChildren = !!children?.length;
+
+  useEffect(() => {
+    if (parentIsExpanded === false) {
+      setIsExpanded(hasActiveChildren);
+    }
+  }, [parentIsExpanded, hasActiveChildren]);
 
   const handleInteraction = useCallback(() => {
     if (hasChildren) {
@@ -107,6 +114,7 @@ const TreeItem = memo<TreeItemProps>(({
               maxIndent={maxIndent}
               level={level + 1}
               activeNeighbourLevel={hasActiveChildren || isActive ? level : activeNeighbourLevel}
+              parentIsExpanded={childItem.children?.length ? isExpanded : undefined}
             />
           ))}
         </ChildrenContainer>

@@ -53,4 +53,5 @@ export type TreeItemProps = {
   maxIndent?: number,
   level?: number,
   activeNeighbourLevel?: number,
+  parentIsExpanded?: boolean,
 };
