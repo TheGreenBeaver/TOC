@@ -1,4 +1,5 @@
-import { forwardRef, useMemo, useState, memo, useEffect, useCallback } from 'react';
+import type { KeyboardEventHandler } from 'react';
+import { forwardRef, useMemo, useState, memo, useCallback } from 'react';
 import {
   TocItem,
   TocList,
@@ -13,7 +14,6 @@ import type {
   TocProps,
   ChildrenContainerProps,
   TreeItemProps,
-  TocItemConfig,
 } from './types';
 import { getActivePaths, getFilteredItems } from './helpers';
 import { StatefulInput } from '../StatefulInput';
@@ -59,31 +59,23 @@ const TreeItem = memo<TreeItemProps>(({
   maxIndent,
   level = 0,
   activeNeighbourLevel,
-  onActiveChange,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [activeChildren, setActiveChildren] = useState<TocItemConfig[]>([]);
+  const hasActiveChildren = !!activeChildPath;
+  const [isExpanded, setIsExpanded] = useState(hasActiveChildren);
   const { children, label, url } = item;
   const hasChildren = !!children?.length;
 
-  useEffect(() => {
-    onActiveChange?.(item, !!isActive);
-  }, [item, isActive, onActiveChange]);
-
-  const handleInteraction = () => {
+  const handleInteraction = useCallback(() => {
     if (hasChildren) {
       setIsExpanded(curr => !curr);
     }
-  };
+  }, [hasChildren]);
 
-  const onChildActiveChange = useCallback((childItem: TocItemConfig, isChildActive: boolean) => {
-    onActiveChange?.(childItem, isChildActive);
-    setIsExpanded(curr => curr || isChildActive);
-    setActiveChildren(curr => isChildActive
-      ? [...curr, childItem]
-      : curr.filter(someItem => someItem !== childItem),
-    );
-  }, [onActiveChange]);
+  const handleKeyboardInteraction = useCallback<KeyboardEventHandler>(e => {
+    if (e.key === 'Enter') {
+      handleInteraction();
+    }
+  }, [handleInteraction]);
 
   const splitPath = activeChildPath?.split('.');
 
@@ -92,16 +84,12 @@ const TreeItem = memo<TreeItemProps>(({
       <TocItem
         indent={maxIndent == null ? level : Math.min(maxIndent, level)}
         onClick={handleInteraction}
-        onKeyUp={e => {
-          if (e.key === 'Enter') {
-            handleInteraction();
-          }
-        }}
+        onKeyUp={handleKeyboardInteraction}
         tabIndex={url ? undefined : 0}
         isActive={isActive}
         isLink={!!url}
         level={level}
-        hasActiveChildren={!!activeChildren.length}
+        hasActiveChildren={hasActiveChildren}
         activeNeighbourLevel={activeNeighbourLevel}
       >
         <StyledExpandIcon asPlaceholder={!hasChildren} isExpanded={isExpanded} />
@@ -118,8 +106,7 @@ const TreeItem = memo<TreeItemProps>(({
               activeChildPath={splitPath?.[0] === String(index) ? splitPath?.slice(1).join('.') : undefined}
               maxIndent={maxIndent}
               level={level + 1}
-              activeNeighbourLevel={activeChildren.length || isActive ? level : activeNeighbourLevel}
-              onActiveChange={onChildActiveChange}
+              activeNeighbourLevel={hasActiveChildren || isActive ? level : activeNeighbourLevel}
             />
           ))}
         </ChildrenContainer>

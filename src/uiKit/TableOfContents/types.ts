@@ -53,5 +53,4 @@ export type TreeItemProps = {
   maxIndent?: number,
   level?: number,
   activeNeighbourLevel?: number,
-  onActiveChange?: (item: TocItemConfig, isActive: boolean) => void,
 };
